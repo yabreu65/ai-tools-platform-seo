@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node index.ts",
-    "start": "ts-node index.ts",
-    "build": "tsc"
+    "start": "node index.js",
+    "build": "tsc",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@radix-ui/react-radio-group": "^1.3.7",
