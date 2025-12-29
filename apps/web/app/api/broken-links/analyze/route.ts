@@ -210,5 +210,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Exportar el cache para que otros endpoints puedan accederlo
-export { analysisCache };
+// Nota: analysisCache está disponible globalmente en (global as any).analysisCache
+// No se puede exportar directamente en Next.js API Routes

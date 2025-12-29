@@ -1,12 +1,33 @@
 'use client';
 
 import React from 'react';
+
+export const dynamic = 'force-dynamic';
 import { WifiOff, RefreshCw, Home, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const OfflinePage: React.FC = () => {
+  const [isOnline, setIsOnline] = React.useState(false);
+
+  React.useEffect(() => {
+    // Check initial online status
+    setIsOnline(navigator.onLine);
+
+    // Listen for online/offline events
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const handleRetry = () => {
-    if (navigator.onLine) {
+    if (isOnline) {
       window.location.reload();
     } else {
       alert('Aún no hay conexión a internet. Intenta de nuevo cuando tengas conexión.');
@@ -36,9 +57,9 @@ const OfflinePage: React.FC = () => {
         {/* Connection Status */}
         <div className="bg-muted/30 rounded-lg p-6 max-w-lg mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className={`w-3 h-3 rounded-full ${navigator.onLine ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
             <span className="font-medium">
-              Estado: {navigator.onLine ? 'Conectado' : 'Desconectado'}
+              Estado: {isOnline ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
           

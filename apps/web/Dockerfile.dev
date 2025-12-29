@@ -1,0 +1,23 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar package files
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install
+
+# El código se monta como volumen en docker-compose
+# No necesitamos COPY ni BUILD para desarrollo
+
+# Para desarrollo, ejecutamos como root para evitar problemas de permisos
+# con los volúmenes montados
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+# Modo desarrollo
+CMD ["npm", "run", "dev"]

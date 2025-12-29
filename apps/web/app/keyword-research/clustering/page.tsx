@@ -32,15 +32,15 @@ import {
   Scatter, 
   XAxis, 
   YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   BarChart,
   Bar,
-  TreeMap
+  Treemap
 } from 'recharts';
 
 interface KeywordCluster {
@@ -270,9 +270,13 @@ const KeywordClustering = () => {
           }))
         })),
         totalKeywords: data.totalKeywords,
-        totalClusters: data.totalClusters,
-        avgClusterSize: data.avgClusterSize,
-        silhouetteScore: data.silhouetteScore,
+        clusteringScore: data.silhouetteScore || 0,
+        method: clusteringMethod,
+        parameters: {
+          minClusterSize,
+          maxClusters,
+          similarityThreshold
+        },
         suggestions: data.suggestions || []
       };
 
