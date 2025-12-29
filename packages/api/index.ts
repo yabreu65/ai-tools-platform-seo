@@ -1,4 +1,3 @@
-import './polyfills';
 import dotenv from 'dotenv';
 dotenv.config();
 
