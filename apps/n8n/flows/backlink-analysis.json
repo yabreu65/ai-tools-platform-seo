@@ -1,0 +1,281 @@
+{
+  "name": "Backlink Analysis Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "backlink-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Backlink Analysis Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "backlink-analysis-webhook"
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, analysisId, analysisDepth = 'standard', competitors = [] } = $json;\n\nif (!url || !analysisId) {\n  throw new Error('URL y analysisId son requeridos');\n}\n\nconst analysisConfig = {\n  basic: {\n    checkDomainAuthority: true,\n    analyzeBacklinks: true,\n    checkReferringDomains: true,\n    maxBacklinks: 50,\n    competitorComparison: false\n  },\n  standard: {\n    checkDomainAuthority: true,\n    analyzeBacklinks: true,\n    checkReferringDomains: true,\n    analyzeAnchorText: true,\n    checkLinkQuality: true,\n    maxBacklinks: 200,\n    competitorComparison: true\n  },\n  advanced: {\n    checkDomainAuthority: true,\n    analyzeBacklinks: true,\n    checkReferringDomains: true,\n    analyzeAnchorText: true,\n    checkLinkQuality: true,\n    analyzeLinkVelocity: true,\n    checkToxicLinks: true,\n    maxBacklinks: 500,\n    competitorComparison: true,\n    gapAnalysis: true\n  }\n};\n\nconst config = analysisConfig[analysisDepth] || analysisConfig.standard;\n\nreturn {\n  url,\n  analysisId,\n  competitors,\n  analysisDepth,\n  config,\n  startTime: new Date().toISOString()\n};"
+      },
+      "id": "validate-backlink-input",
+      "name": "Validate Backlink Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, config } = $json;\n\n// Simular análisis de autoridad de dominio\nconst urlHash = url.split('').reduce((a, b) => {\n  a = ((a << 5) - a) + b.charCodeAt(0);\n  return a & a;\n}, 0);\n\nconst domainAuthority = {\n  domainRating: Math.abs(urlHash % 40) + 30, // 30-70\n  pageAuthority: Math.abs(urlHash % 35) + 25, // 25-60\n  trustFlow: Math.abs(urlHash % 30) + 20, // 20-50\n  citationFlow: Math.abs(urlHash % 45) + 15, // 15-60\n  mozRank: (Math.abs(urlHash % 80) + 20) / 10, // 2.0-10.0\n  alexaRank: Math.abs(urlHash % 500000) + 50000, // 50k-550k\n  spamScore: Math.abs(urlHash % 15) + 1, // 1-15\n  organicTraffic: Math.abs(urlHash % 50000) + 5000 // 5k-55k\n};\n\nconst domainMetrics = {\n  age: Math.abs(urlHash % 15) + 2, // 2-17 años\n  indexedPages: Math.abs(urlHash % 10000) + 500,\n  totalBacklinks: Math.abs(urlHash % 50000) + 1000,\n  referringDomains: Math.abs(urlHash % 2000) + 100,\n  referringIPs: Math.abs(urlHash % 1500) + 80,\n  referringSubnets: Math.abs(urlHash % 800) + 50\n};\n\nreturn {\n  ...($json),\n  domainAuthority,\n  domainMetrics,\n  step: 'domain-analyzed'\n};"
+      },
+      "id": "analyze-domain-authority",
+      "name": "Analyze Domain Authority",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, config, domainMetrics } = $json;\n\n// Simular análisis de backlinks\nconst urlHash = url.split('').reduce((a, b) => {\n  a = ((a << 5) - a) + b.charCodeAt(0);\n  return a & a;\n}, 0);\n\nconst generateBacklinks = (count) => {\n  const backlinks = [];\n  const domains = [\n    'techcrunch.com', 'forbes.com', 'entrepreneur.com', 'inc.com',\n    'businessinsider.com', 'mashable.com', 'wired.com', 'theverge.com',\n    'medium.com', 'linkedin.com', 'reddit.com', 'quora.com',\n    'wikipedia.org', 'github.com', 'stackoverflow.com', 'dev.to'\n  ];\n  \n  for (let i = 0; i < count; i++) {\n    const domain = domains[Math.abs((urlHash + i) % domains.length)];\n    const dr = Math.abs((urlHash + i) % 60) + 20;\n    \n    backlinks.push({\n      id: `backlink_${i + 1}`,\n      sourceDomain: domain,\n      sourceUrl: `https://${domain}/article-${i + 1}`,\n      targetUrl: url,\n      anchorText: ['SEO tools', 'marketing platform', 'analytics', 'optimization', 'digital marketing'][Math.abs((urlHash + i) % 5)],\n      linkType: ['dofollow', 'nofollow'][Math.abs((urlHash + i) % 2)],\n      domainRating: dr,\n      pageRating: Math.abs((urlHash + i) % 40) + 15,\n      firstSeen: new Date(Date.now() - Math.abs((urlHash + i) % 365) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],\n      lastSeen: new Date(Date.now() - Math.abs((urlHash + i) % 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],\n      linkPosition: ['content', 'sidebar', 'footer', 'navigation'][Math.abs((urlHash + i) % 4)],\n      linkContext: 'Mentioned in article about digital marketing trends',\n      isActive: Math.random() > 0.1,\n      spamScore: Math.abs((urlHash + i) % 10) + 1\n    });\n  }\n  \n  return backlinks;\n};\n\nconst backlinks = generateBacklinks(Math.min(config.maxBacklinks, 100));\n\nconst backlinkAnalysis = {\n  totalBacklinks: backlinks.length,\n  dofollowLinks: backlinks.filter(b => b.linkType === 'dofollow').length,\n  nofollowLinks: backlinks.filter(b => b.linkType === 'nofollow').length,\n  activeLinks: backlinks.filter(b => b.isActive).length,\n  brokenLinks: backlinks.filter(b => !b.isActive).length,\n  averageDR: Math.round(backlinks.reduce((sum, b) => sum + b.domainRating, 0) / backlinks.length),\n  highQualityLinks: backlinks.filter(b => b.domainRating > 50).length,\n  lowQualityLinks: backlinks.filter(b => b.domainRating < 30).length,\n  spamLinks: backlinks.filter(b => b.spamScore > 7).length\n};\n\nconst referringDomains = {\n  total: domainMetrics.referringDomains,\n  unique: [...new Set(backlinks.map(b => b.sourceDomain))].length,\n  topDomains: backlinks\n    .reduce((acc, b) => {\n      acc[b.sourceDomain] = (acc[b.sourceDomain] || 0) + 1;\n      return acc;\n    }, {}),\n  domainTypes: {\n    news: Math.abs(urlHash % 20) + 5,\n    blogs: Math.abs(urlHash % 30) + 10,\n    forums: Math.abs(urlHash % 15) + 3,\n    social: Math.abs(urlHash % 25) + 8,\n    directories: Math.abs(urlHash % 10) + 2,\n    educational: Math.abs(urlHash % 8) + 1,\n    government: Math.abs(urlHash % 5) + 0\n  }\n};\n\nreturn {\n  ...($json),\n  backlinks: backlinks.slice(0, 20), // Limitar para el ejemplo\n  backlinkAnalysis,\n  referringDomains,\n  step: 'backlinks-analyzed'\n};"
+      },
+      "id": "analyze-backlinks",
+      "name": "Analyze Backlinks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, backlinks, config } = $json;\n\nif (!config.analyzeAnchorText) {\n  return {\n    ...($json),\n    anchorTextAnalysis: null,\n    step: 'anchor-skipped'\n  };\n}\n\n// Análisis de texto ancla\nconst anchorTexts = backlinks.map(b => b.anchorText);\nconst anchorAnalysis = anchorTexts.reduce((acc, anchor) => {\n  acc[anchor] = (acc[anchor] || 0) + 1;\n  return acc;\n}, {});\n\nconst anchorTextAnalysis = {\n  totalAnchors: anchorTexts.length,\n  uniqueAnchors: Object.keys(anchorAnalysis).length,\n  topAnchors: Object.entries(anchorAnalysis)\n    .sort(([,a], [,b]) => b - a)\n    .slice(0, 10)\n    .map(([anchor, count]) => ({\n      text: anchor,\n      count,\n      percentage: Math.round((count / anchorTexts.length) * 100)\n    })),\n  anchorTypes: {\n    branded: anchorTexts.filter(a => a.toLowerCase().includes(url.split('/')[2]?.split('.')[0] || '')).length,\n    exact: anchorTexts.filter(a => ['seo', 'marketing', 'analytics'].some(k => a.toLowerCase().includes(k))).length,\n    partial: anchorTexts.filter(a => a.includes('tools') || a.includes('platform')).length,\n    generic: anchorTexts.filter(a => ['click here', 'read more', 'website', 'link'].some(g => a.toLowerCase().includes(g))).length,\n    naked: anchorTexts.filter(a => a.includes('http') || a.includes('www')).length\n  },\n  diversity: {\n    score: Math.min(Object.keys(anchorAnalysis).length / anchorTexts.length * 100, 100),\n    overOptimization: Object.values(anchorAnalysis).some(count => count / anchorTexts.length > 0.3),\n    naturalness: Math.random() * 40 + 60 // 60-100\n  }\n};\n\nreturn {\n  ...($json),\n  anchorTextAnalysis,\n  step: 'anchor-analyzed'\n};"
+      },
+      "id": "analyze-anchor-text",
+      "name": "Analyze Anchor Text",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, backlinks, config } = $json;\n\nif (!config.checkLinkQuality) {\n  return {\n    ...($json),\n    linkQuality: null,\n    step: 'quality-skipped'\n  };\n}\n\n// Análisis de calidad de enlaces\nconst qualityMetrics = {\n  highQuality: backlinks.filter(b => \n    b.domainRating > 50 && \n    b.spamScore < 5 && \n    b.linkType === 'dofollow'\n  ).length,\n  mediumQuality: backlinks.filter(b => \n    b.domainRating >= 30 && b.domainRating <= 50 && \n    b.spamScore < 7\n  ).length,\n  lowQuality: backlinks.filter(b => \n    b.domainRating < 30 || \n    b.spamScore >= 7\n  ).length,\n  toxic: backlinks.filter(b => \n    b.spamScore > 8 || \n    !b.isActive\n  ).length\n};\n\nconst linkQuality = {\n  overallScore: Math.round(\n    (qualityMetrics.highQuality * 3 + \n     qualityMetrics.mediumQuality * 2 + \n     qualityMetrics.lowQuality * 1) / \n    (backlinks.length * 3) * 100\n  ),\n  distribution: qualityMetrics,\n  riskFactors: {\n    spamRisk: qualityMetrics.toxic / backlinks.length * 100,\n    diversityRisk: backlinks.length < 50 ? 'high' : backlinks.length < 200 ? 'medium' : 'low',\n    velocityRisk: 'medium', // Simulado\n    anchorRisk: 'low' // Simulado\n  },\n  recommendations: [\n    qualityMetrics.toxic > 0 ? 'Desautorizar enlaces tóxicos identificados' : null,\n    qualityMetrics.highQuality < backlinks.length * 0.3 ? 'Buscar más enlaces de alta calidad' : null,\n    'Diversificar fuentes de enlaces',\n    'Monitorear regularmente nuevos backlinks'\n  ].filter(Boolean),\n  topQualityLinks: backlinks\n    .filter(b => b.domainRating > 50 && b.spamScore < 5)\n    .slice(0, 5)\n    .map(b => ({\n      domain: b.sourceDomain,\n      dr: b.domainRating,\n      anchor: b.anchorText,\n      type: b.linkType\n    }))\n};\n\nreturn {\n  ...($json),\n  linkQuality,\n  step: 'quality-analyzed'\n};"
+      },
+      "id": "analyze-link-quality",
+      "name": "Analyze Link Quality",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, competitors, config, domainAuthority, backlinkAnalysis } = $json;\n\nif (!config.competitorComparison || !competitors.length) {\n  return {\n    ...($json),\n    competitorComparison: null,\n    step: 'competitor-skipped'\n  };\n}\n\n// Simular datos de competidores\nconst competitorData = competitors.slice(0, 5).map((competitor, index) => {\n  const compHash = competitor.split('').reduce((a, b) => {\n    a = ((a << 5) - a) + b.charCodeAt(0);\n    return a & a;\n  }, 0);\n  \n  return {\n    url: competitor,\n    domainRating: Math.abs(compHash % 50) + 25,\n    totalBacklinks: Math.abs(compHash % 30000) + 5000,\n    referringDomains: Math.abs(compHash % 1500) + 200,\n    organicTraffic: Math.abs(compHash % 40000) + 8000,\n    topKeywords: Math.abs(compHash % 5000) + 1000\n  };\n});\n\nconst competitorComparison = {\n  myDomain: {\n    url,\n    domainRating: domainAuthority.domainRating,\n    totalBacklinks: backlinkAnalysis.totalBacklinks,\n    referringDomains: backlinkAnalysis.totalBacklinks * 0.3, // Estimado\n    organicTraffic: domainAuthority.organicTraffic\n  },\n  competitors: competitorData,\n  analysis: {\n    domainRatingRank: competitorData.filter(c => c.domainRating > domainAuthority.domainRating).length + 1,\n    backlinksRank: competitorData.filter(c => c.totalBacklinks > backlinkAnalysis.totalBacklinks).length + 1,\n    trafficRank: competitorData.filter(c => c.organicTraffic > domainAuthority.organicTraffic).length + 1,\n    averageCompetitorDR: Math.round(competitorData.reduce((sum, c) => sum + c.domainRating, 0) / competitorData.length),\n    gapAnalysis: {\n      drGap: Math.round(competitorData.reduce((sum, c) => sum + c.domainRating, 0) / competitorData.length) - domainAuthority.domainRating,\n      backlinkGap: Math.round(competitorData.reduce((sum, c) => sum + c.totalBacklinks, 0) / competitorData.length) - backlinkAnalysis.totalBacklinks,\n      trafficGap: Math.round(competitorData.reduce((sum, c) => sum + c.organicTraffic, 0) / competitorData.length) - domainAuthority.organicTraffic\n    }\n  },\n  opportunities: [\n    'Analizar estrategias de link building de competidores top',\n    'Identificar dominios que enlazan a múltiples competidores',\n    'Buscar menciones no enlazadas de la marca',\n    'Replicar tipos de contenido que generan más backlinks'\n  ]\n};\n\nreturn {\n  ...($json),\n  competitorComparison,\n  step: 'competitor-analyzed'\n};"
+      },
+      "id": "compare-competitors",
+      "name": "Compare with Competitors",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { \n  url, \n  analysisId, \n  domainAuthority, \n  domainMetrics, \n  backlinkAnalysis, \n  referringDomains, \n  anchorTextAnalysis, \n  linkQuality, \n  competitorComparison, \n  startTime \n} = $json;\n\n// Calcular puntuación general de backlinks\nconst calculateBacklinkScore = () => {\n  let score = 0;\n  let maxScore = 0;\n  \n  // Domain Authority (30%)\n  score += (domainAuthority.domainRating / 100) * 30;\n  maxScore += 30;\n  \n  // Link Quality (25%)\n  if (linkQuality) {\n    score += (linkQuality.overallScore / 100) * 25;\n  } else {\n    score += 18; // Puntuación por defecto\n  }\n  maxScore += 25;\n  \n  // Diversity (20%)\n  const diversityScore = Math.min(referringDomains.unique / 100, 1) * 20;\n  score += diversityScore;\n  maxScore += 20;\n  \n  // Anchor Text Naturalness (15%)\n  if (anchorTextAnalysis) {\n    score += (anchorTextAnalysis.diversity.naturalness / 100) * 15;\n  } else {\n    score += 12; // Puntuación por defecto\n  }\n  maxScore += 15;\n  \n  // Growth Potential (10%)\n  const growthScore = competitorComparison ? \n    Math.max(0, 10 - (competitorComparison.analysis.domainRatingRank - 1) * 2) : 8;\n  score += growthScore;\n  maxScore += 10;\n  \n  return Math.round((score / maxScore) * 100);\n};\n\n// Generar recomendaciones\nconst generateRecommendations = () => {\n  const recommendations = [];\n  \n  if (domainAuthority.domainRating < 40) {\n    recommendations.push({\n      category: 'Authority',\n      priority: 'alta',\n      action: 'Enfocar esfuerzos en conseguir backlinks de dominios con DR > 50',\n      impact: 'alto',\n      effort: 'alto'\n    });\n  }\n  \n  if (linkQuality && linkQuality.distribution.toxic > 0) {\n    recommendations.push({\n      category: 'Calidad',\n      priority: 'crítica',\n      action: `Desautorizar ${linkQuality.distribution.toxic} enlaces tóxicos identificados`,\n      impact: 'alto',\n      effort: 'bajo'\n    });\n  }\n  \n  if (backlinkAnalysis.totalBacklinks < 100) {\n    recommendations.push({\n      category: 'Cantidad',\n      priority: 'media',\n      action: 'Implementar estrategia de link building más agresiva',\n      impact: 'medio',\n      effort: 'alto'\n    });\n  }\n  \n  if (anchorTextAnalysis && anchorTextAnalysis.diversity.overOptimization) {\n    recommendations.push({\n      category: 'Anchor Text',\n      priority: 'media',\n      action: 'Diversificar textos ancla para evitar sobre-optimización',\n      impact: 'medio',\n      effort: 'medio'\n    });\n  }\n  \n  return recommendations;\n};\n\nconst backlinkAnalysisResult = {\n  analysisId,\n  url,\n  analyzedAt: new Date().toISOString(),\n  processingTime: Date.now() - new Date(startTime).getTime(),\n  overallScore: calculateBacklinkScore(),\n  \n  domain: {\n    authority: domainAuthority,\n    metrics: domainMetrics\n  },\n  \n  backlinks: {\n    analysis: backlinkAnalysis,\n    referringDomains,\n    anchorText: anchorTextAnalysis,\n    quality: linkQuality\n  },\n  \n  competition: competitorComparison,\n  \n  recommendations: generateRecommendations(),\n  \n  summary: {\n    totalBacklinks: backlinkAnalysis.totalBacklinks,\n    domainRating: domainAuthority.domainRating,\n    referringDomains: referringDomains.total,\n    linkQualityScore: linkQuality ? linkQuality.overallScore : 'No analizado',\n    competitorRank: competitorComparison ? competitorComparison.analysis.domainRatingRank : 'No comparado',\n    riskLevel: linkQuality ? \n      (linkQuality.riskFactors.spamRisk > 10 ? 'Alto' : \n       linkQuality.riskFactors.spamRisk > 5 ? 'Medio' : 'Bajo') : 'No evaluado'\n  },\n  \n  opportunities: {\n    linkBuilding: [\n      'Guest posting en sitios de alta autoridad',\n      'Recuperación de menciones no enlazadas',\n      'Link building mediante recursos y herramientas',\n      'Colaboraciones y partnerships estratégicos'\n    ],\n    contentMarketing: [\n      'Crear contenido linkeable (estudios, infografías)',\n      'Desarrollar herramientas gratuitas',\n      'Publicar investigaciones originales',\n      'Crear guías completas y recursos'\n    ]\n  }\n};\n\nreturn backlinkAnalysisResult;"
+      },
+      "id": "compile-backlink-results",
+      "name": "Compile Backlink Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "backlink_analyses",
+        "updateKey": "analysisId",
+        "fieldsUi": {
+          "field": [
+            {
+              "fieldName": "status",
+              "fieldValue": "completed"
+            },
+            {
+              "fieldName": "results",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "fieldName": "completedAt",
+              "fieldValue": "={{ $json.analyzedAt }}"
+            }
+          ]
+        },
+        "options": {
+          "upsert": true
+        }
+      },
+      "id": "save-backlink-results",
+      "name": "Save Backlink Results",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [2000, 300],
+      "credentials": {
+        "mongoDb": {
+          "id": "mongodb-credentials",
+          "name": "MongoDB Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.NEXTJS_WEBHOOK_URL }}/api/competitor-analysis/webhook",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={ \"analysisId\": \"{{ $json.analysisId }}\", \"type\": \"backlinks\", \"status\": \"completed\", \"results\": {{ JSON.stringify($json) }} }",
+        "options": {}
+      },
+      "id": "notify-backlink-completion",
+      "name": "Notify Backlink Completion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",\n        "responseBody": "={ \"success\": true, \"analysisId\": \"{{ $json.analysisId }}\", \"type\": \"backlinks\", \"status\": \"completed\", \"score\": {{ $json.overallScore }} }"
+      },
+      "id": "response-backlink-success",
+      "name": "Response Backlink Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2440, 300]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "validate-backlink-input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate-backlink-input": {
+      "main": [
+        [
+          {
+            "node": "analyze-domain-authority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-domain-authority": {
+      "main": [
+        [
+          {
+            "node": "analyze-backlinks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-backlinks": {
+      "main": [
+        [
+          {
+            "node": "analyze-anchor-text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-anchor-text": {
+      "main": [
+        [
+          {
+            "node": "analyze-link-quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-link-quality": {
+      "main": [
+        [
+          {
+            "node": "compare-competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "compare-competitors": {
+      "main": [
+        [
+          {
+            "node": "compile-backlink-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "compile-backlink-results": {
+      "main": [
+        [
+          {
+            "node": "save-backlink-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save-backlink-results": {
+      "main": [
+        [
+          {
+            "node": "notify-backlink-completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-backlink-completion": {
+      "main": [
+        [
+          {
+            "node": "response-backlink-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "America/New_York",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "1",
+  "id": "backlink-analysis",
+  "meta": {
+    "instanceId": "n8n-seo-analyzer"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "backlink-analysis",
+      "name": "Backlink Analysis"
+    }
+  ]
+}

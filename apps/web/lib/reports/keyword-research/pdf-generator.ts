@@ -1,0 +1,759 @@
+/**
+ * Generador de reportes PDF para Keyword Research Tool
+ * Crea reportes profesionales con gráficos y análisis detallados
+ */
+
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { Chart, registerables } from 'chart.js';
+
+// Registrar componentes de Chart.js
+Chart.register(...registerables);
+
+interface ReportData {
+  title: string;
+  subtitle?: string;
+  generatedDate: string;
+  generatedBy: string;
+  summary: {
+    totalKeywords: number;
+    avgDifficulty: number;
+    totalVolume: number;
+    avgCpc: number;
+    topOpportunities: number;
+  };
+  keywords: Array<{
+    keyword: string;
+    volume: number;
+    difficulty: number;
+    cpc: number;
+    competition: number;
+    intent: string;
+    trend: 'rising' | 'falling' | 'stable';
+    opportunity: 'high' | 'medium' | 'low';
+  }>;
+  clusters?: Array<{
+    name: string;
+    size: number;
+    avgVolume: number;
+    avgDifficulty: number;
+    intent: string;
+    keywords: string[];
+  }>;
+  trends?: Array<{
+    keyword: string;
+    data: Array<{ date: string; volume: number }>;
+    forecast: { predicted: number; confidence: number };
+  }>;
+  competitors?: Array<{
+    domain: string;
+    keywords: number;
+    avgPosition: number;
+    marketShare: number;
+  }>;
+  recommendations: string[];
+}
+
+interface PdfOptions {
+  includeCharts: boolean;
+  includeTables: boolean;
+  includeAnalysis: boolean;
+  colorScheme: 'blue' | 'green' | 'purple';
+  logoUrl?: string;
+  companyName?: string;
+}
+
+class PDFReportGenerator {
+  private pdf: jsPDF;
+  private currentY: number = 20;
+  private pageHeight: number = 297; // A4 height in mm
+  private margin: number = 20;
+  private colors: Record<string, string>;
+
+  constructor() {
+    this.pdf = new jsPDF();
+    this.colors = {
+      primary: '#2563eb',
+      secondary: '#64748b',
+      success: '#059669',
+      warning: '#d97706',
+      danger: '#dc2626',
+      text: '#1f2937',
+      lightGray: '#f8fafc'
+    };
+  }
+
+  /**
+   * Genera reporte PDF completo
+   */
+  async generateReport(data: ReportData, options: PdfOptions = {
+    includeCharts: true,
+    includeTables: true,
+    includeAnalysis: true,
+    colorScheme: 'blue'
+  }): Promise<Blob> {
+    // Configurar colores según esquema
+    this.setColorScheme(options.colorScheme);
+
+    // Generar portada
+    this.generateCoverPage(data, options);
+
+    // Generar resumen ejecutivo
+    this.addNewPage();
+    this.generateExecutiveSummary(data);
+
+    // Generar análisis de keywords
+    this.addNewPage();
+    await this.generateKeywordAnalysis(data, options);
+
+    // Generar análisis de clusters (si disponible)
+    if (data.clusters && data.clusters.length > 0) {
+      this.addNewPage();
+      await this.generateClusterAnalysis(data.clusters, options);
+    }
+
+    // Generar análisis de tendencias (si disponible)
+    if (data.trends && data.trends.length > 0) {
+      this.addNewPage();
+      await this.generateTrendAnalysis(data.trends, options);
+    }
+
+    // Generar análisis de competidores (si disponible)
+    if (data.competitors && data.competitors.length > 0) {
+      this.addNewPage();
+      await this.generateCompetitorAnalysis(data.competitors, options);
+    }
+
+    // Generar recomendaciones
+    this.addNewPage();
+    this.generateRecommendations(data.recommendations);
+
+    // Generar apéndice con datos detallados
+    if (options.includeTables) {
+      this.addNewPage();
+      this.generateAppendix(data);
+    }
+
+    return this.pdf.output('blob');
+  }
+
+  /**
+   * Configura esquema de colores
+   */
+  private setColorScheme(scheme: 'blue' | 'green' | 'purple'): void {
+    const schemes = {
+      blue: { primary: '#2563eb', secondary: '#3b82f6' },
+      green: { primary: '#059669', secondary: '#10b981' },
+      purple: { primary: '#7c3aed', secondary: '#8b5cf6' }
+    };
+
+    this.colors.primary = schemes[scheme].primary;
+    this.colors.secondary = schemes[scheme].secondary;
+  }
+
+  /**
+   * Genera portada del reporte
+   */
+  private generateCoverPage(data: ReportData, options: PdfOptions): void {
+    // Logo y nombre de empresa (si se proporciona)
+    if (options.logoUrl && options.companyName) {
+      this.pdf.setFontSize(16);
+      this.pdf.setTextColor(this.colors.secondary);
+      this.pdf.text(options.companyName, this.margin, 30);
+    }
+
+    // Título principal
+    this.pdf.setFontSize(28);
+    this.pdf.setTextColor(this.colors.primary);
+    this.pdf.text(data.title, this.margin, 80);
+
+    // Subtítulo
+    if (data.subtitle) {
+      this.pdf.setFontSize(16);
+      this.pdf.setTextColor(this.colors.text);
+      this.pdf.text(data.subtitle, this.margin, 100);
+    }
+
+    // Información del reporte
+    this.pdf.setFontSize(12);
+    this.pdf.setTextColor(this.colors.secondary);
+    this.pdf.text(`Generated on: ${data.generatedDate}`, this.margin, 140);
+    this.pdf.text(`Generated by: ${data.generatedBy}`, this.margin, 155);
+
+    // Resumen rápido en la portada
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(this.colors.text);
+    this.pdf.text('Report Summary:', this.margin, 180);
+
+    const summaryItems = [
+      `Total Keywords Analyzed: ${data.summary.totalKeywords.toLocaleString()}`,
+      `Average Difficulty Score: ${data.summary.avgDifficulty}/100`,
+      `Total Search Volume: ${data.summary.totalVolume.toLocaleString()}`,
+      `Average CPC: $${data.summary.avgCpc.toFixed(2)}`,
+      `High Opportunity Keywords: ${data.summary.topOpportunities}`
+    ];
+
+    this.pdf.setFontSize(11);
+    summaryItems.forEach((item, index) => {
+      this.pdf.text(`• ${item}`, this.margin + 5, 195 + (index * 12));
+    });
+  }
+
+  /**
+   * Genera resumen ejecutivo
+   */
+  private generateExecutiveSummary(data: ReportData): void {
+    this.addSectionHeader('Executive Summary');
+
+    // Métricas clave
+    this.addSubheader('Key Metrics');
+    
+    const metrics = [
+      ['Total Keywords', data.summary.totalKeywords.toLocaleString()],
+      ['Average Difficulty', `${data.summary.avgDifficulty}/100`],
+      ['Total Search Volume', data.summary.totalVolume.toLocaleString()],
+      ['Average CPC', `$${data.summary.avgCpc.toFixed(2)}`],
+      ['High Opportunity Keywords', data.summary.topOpportunities.toString()]
+    ];
+
+    this.addTable(['Metric', 'Value'], metrics);
+
+    // Distribución por intención
+    this.addSubheader('Intent Distribution');
+    const intentCounts = this.calculateIntentDistribution(data.keywords);
+    const intentData = Object.entries(intentCounts).map(([intent, count]) => [
+      intent.charAt(0).toUpperCase() + intent.slice(1),
+      count.toString(),
+      `${((count / data.keywords.length) * 100).toFixed(1)}%`
+    ]);
+
+    this.addTable(['Intent', 'Keywords', 'Percentage'], intentData);
+
+    // Distribución por dificultad
+    this.addSubheader('Difficulty Distribution');
+    const difficultyRanges = this.calculateDifficultyDistribution(data.keywords);
+    const difficultyData = Object.entries(difficultyRanges).map(([range, count]) => [
+      range,
+      count.toString(),
+      `${((count / data.keywords.length) * 100).toFixed(1)}%`
+    ]);
+
+    this.addTable(['Difficulty Range', 'Keywords', 'Percentage'], difficultyData);
+  }
+
+  /**
+   * Genera análisis de keywords
+   */
+  private async generateKeywordAnalysis(data: ReportData, options: PdfOptions): Promise<void> {
+    this.addSectionHeader('Keyword Analysis');
+
+    // Top oportunidades
+    this.addSubheader('Top Opportunities');
+    const topOpportunities = data.keywords
+      .filter(k => k.opportunity === 'high')
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 10);
+
+    const opportunityData = topOpportunities.map(k => [
+      k.keyword,
+      k.volume.toLocaleString(),
+      k.difficulty.toString(),
+      `$${k.cpc.toFixed(2)}`,
+      k.intent,
+      k.trend
+    ]);
+
+    this.addTable(
+      ['Keyword', 'Volume', 'Difficulty', 'CPC', 'Intent', 'Trend'],
+      opportunityData
+    );
+
+    // Gráfico de volumen vs dificultad (si se incluyen gráficos)
+    if (options.includeCharts) {
+      this.addSubheader('Volume vs Difficulty Analysis');
+      await this.addScatterChart(data.keywords);
+    }
+
+    // Keywords de alto volumen
+    this.addSubheader('High Volume Keywords');
+    const highVolumeKeywords = data.keywords
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 15);
+
+    const highVolumeData = highVolumeKeywords.map(k => [
+      k.keyword,
+      k.volume.toLocaleString(),
+      k.difficulty.toString(),
+      `$${k.cpc.toFixed(2)}`,
+      k.competition.toFixed(2)
+    ]);
+
+    this.addTable(
+      ['Keyword', 'Volume', 'Difficulty', 'CPC', 'Competition'],
+      highVolumeData
+    );
+  }
+
+  /**
+   * Genera análisis de clusters
+   */
+  private async generateClusterAnalysis(clusters: any[], options: PdfOptions): Promise<void> {
+    this.addSectionHeader('Keyword Clustering Analysis');
+
+    // Resumen de clusters
+    this.addSubheader('Cluster Overview');
+    const clusterData = clusters.slice(0, 10).map(cluster => [
+      cluster.name,
+      cluster.size.toString(),
+      cluster.avgVolume.toLocaleString(),
+      cluster.avgDifficulty.toString(),
+      cluster.intent
+    ]);
+
+    this.addTable(
+      ['Cluster Name', 'Size', 'Avg Volume', 'Avg Difficulty', 'Intent'],
+      clusterData
+    );
+
+    // Gráfico de distribución de clusters
+    if (options.includeCharts) {
+      this.addSubheader('Cluster Size Distribution');
+      await this.addBarChart(
+        clusters.map(c => c.name),
+        clusters.map(c => c.size),
+        'Cluster Size'
+      );
+    }
+
+    // Detalles de clusters principales
+    this.addSubheader('Top Clusters Details');
+    const topClusters = clusters
+      .sort((a, b) => b.avgVolume - a.avgVolume)
+      .slice(0, 5);
+
+    topClusters.forEach(cluster => {
+      this.pdf.setFontSize(11);
+      this.pdf.setTextColor(this.colors.primary);
+      this.pdf.text(`${cluster.name} (${cluster.size} keywords)`, this.margin, this.currentY);
+      this.currentY += 8;
+
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(this.colors.text);
+      const keywordsList = cluster.keywords.slice(0, 8).join(', ');
+      const lines = this.pdf.splitTextToSize(keywordsList, 170);
+      this.pdf.text(lines, this.margin + 5, this.currentY);
+      this.currentY += lines.length * 5 + 5;
+
+      this.checkPageBreak();
+    });
+  }
+
+  /**
+   * Genera análisis de tendencias
+   */
+  private async generateTrendAnalysis(trends: any[], options: PdfOptions): Promise<void> {
+    this.addSectionHeader('Trend Analysis');
+
+    // Resumen de tendencias
+    this.addSubheader('Trend Summary');
+    const trendData = trends.slice(0, 10).map(trend => [
+      trend.keyword,
+      trend.data.length.toString(),
+      trend.forecast.predicted.toLocaleString(),
+      `${(trend.forecast.confidence * 100).toFixed(1)}%`
+    ]);
+
+    this.addTable(
+      ['Keyword', 'Data Points', 'Forecast', 'Confidence'],
+      trendData
+    );
+
+    // Gráficos de tendencias principales
+    if (options.includeCharts) {
+      this.addSubheader('Key Trend Charts');
+      
+      for (const trend of trends.slice(0, 3)) {
+        await this.addLineChart(
+          trend.data.map((d: any) => d.date),
+          trend.data.map((d: any) => d.volume),
+          `${trend.keyword} - Search Volume Trend`
+        );
+      }
+    }
+  }
+
+  /**
+   * Genera análisis de competidores
+   */
+  private async generateCompetitorAnalysis(competitors: any[], options: PdfOptions): Promise<void> {
+    this.addSectionHeader('Competitor Analysis');
+
+    // Top competidores
+    this.addSubheader('Top Competitors');
+    const competitorData = competitors.slice(0, 10).map(comp => [
+      comp.domain,
+      comp.keywords.toString(),
+      comp.avgPosition.toFixed(1),
+      `${(comp.marketShare * 100).toFixed(1)}%`
+    ]);
+
+    this.addTable(
+      ['Domain', 'Keywords', 'Avg Position', 'Market Share'],
+      competitorData
+    );
+
+    // Gráfico de market share
+    if (options.includeCharts) {
+      this.addSubheader('Market Share Distribution');
+      await this.addPieChart(
+        competitors.slice(0, 8).map(c => c.domain),
+        competitors.slice(0, 8).map(c => c.marketShare * 100),
+        'Market Share (%)'
+      );
+    }
+  }
+
+  /**
+   * Genera sección de recomendaciones
+   */
+  private generateRecommendations(recommendations: string[]): void {
+    this.addSectionHeader('Recommendations');
+
+    recommendations.forEach((recommendation, index) => {
+      this.pdf.setFontSize(11);
+      this.pdf.setTextColor(this.colors.text);
+      
+      const lines = this.pdf.splitTextToSize(`${index + 1}. ${recommendation}`, 170);
+      this.pdf.text(lines, this.margin, this.currentY);
+      this.currentY += lines.length * 6 + 5;
+      
+      this.checkPageBreak();
+    });
+  }
+
+  /**
+   * Genera apéndice con datos detallados
+   */
+  private generateAppendix(data: ReportData): void {
+    this.addSectionHeader('Appendix - Detailed Data');
+
+    // Tabla completa de keywords
+    this.addSubheader('Complete Keyword List');
+    
+    const keywordData = data.keywords.map(k => [
+      k.keyword,
+      k.volume.toLocaleString(),
+      k.difficulty.toString(),
+      `$${k.cpc.toFixed(2)}`,
+      k.competition.toFixed(2),
+      k.intent,
+      k.trend,
+      k.opportunity
+    ]);
+
+    this.addTable(
+      ['Keyword', 'Volume', 'Difficulty', 'CPC', 'Competition', 'Intent', 'Trend', 'Opportunity'],
+      keywordData,
+      { fontSize: 8 }
+    );
+  }
+
+  /**
+   * Añade encabezado de sección
+   */
+  private addSectionHeader(title: string): void {
+    this.checkPageBreak(30);
+    
+    this.pdf.setFontSize(18);
+    this.pdf.setTextColor(this.colors.primary);
+    this.pdf.text(title, this.margin, this.currentY);
+    this.currentY += 15;
+
+    // Línea decorativa
+    this.pdf.setDrawColor(this.colors.primary);
+    this.pdf.line(this.margin, this.currentY, 190, this.currentY);
+    this.currentY += 10;
+  }
+
+  /**
+   * Añade subencabezado
+   */
+  private addSubheader(title: string): void {
+    this.checkPageBreak(20);
+    
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(this.colors.secondary);
+    this.pdf.text(title, this.margin, this.currentY);
+    this.currentY += 12;
+  }
+
+  /**
+   * Añade tabla
+   */
+  private addTable(headers: string[], data: string[][], options: any = {}): void {
+    const tableOptions = {
+      startY: this.currentY,
+      head: [headers],
+      body: data,
+      theme: 'grid',
+      headStyles: {
+        fillColor: this.colors.primary,
+        textColor: 255,
+        fontSize: options.fontSize || 10
+      },
+      bodyStyles: {
+        fontSize: options.fontSize || 9
+      },
+      margin: { left: this.margin },
+      ...options
+    };
+
+    (this.pdf as any).autoTable(tableOptions);
+    this.currentY = (this.pdf as any).lastAutoTable.finalY + 10;
+  }
+
+  /**
+   * Añade gráfico de dispersión
+   */
+  private async addScatterChart(keywords: any[]): Promise<void> {
+    // Crear canvas temporal para el gráfico
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return;
+
+    const chart = new Chart(ctx, {
+      type: 'scatter',
+      data: {
+        datasets: [{
+          label: 'Keywords',
+          data: keywords.map(k => ({ x: k.difficulty, y: k.volume })),
+          backgroundColor: this.colors.primary + '80',
+          borderColor: this.colors.primary
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Volume vs Difficulty'
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Difficulty Score'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Search Volume'
+            }
+          }
+        }
+      }
+    });
+
+    // Esperar a que se renderice
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Convertir a imagen y añadir al PDF
+    const imageData = canvas.toDataURL('image/png');
+    this.checkPageBreak(80);
+    this.pdf.addImage(imageData, 'PNG', this.margin, this.currentY, 160, 60);
+    this.currentY += 70;
+
+    // Limpiar
+    chart.destroy();
+  }
+
+  /**
+   * Añade gráfico de barras
+   */
+  private async addBarChart(labels: string[], data: number[], title: string): Promise<void> {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return;
+
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels.slice(0, 8),
+        datasets: [{
+          label: title,
+          data: data.slice(0, 8),
+          backgroundColor: this.colors.primary + '80',
+          borderColor: this.colors.primary,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          title: {
+            display: true,
+            text: title
+          }
+        }
+      }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const imageData = canvas.toDataURL('image/png');
+    this.checkPageBreak(80);
+    this.pdf.addImage(imageData, 'PNG', this.margin, this.currentY, 160, 60);
+    this.currentY += 70;
+
+    chart.destroy();
+  }
+
+  /**
+   * Añade gráfico de líneas
+   */
+  private async addLineChart(labels: string[], data: number[], title: string): Promise<void> {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return;
+
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels.slice(-30), // Últimos 30 puntos
+        datasets: [{
+          label: title,
+          data: data.slice(-30),
+          borderColor: this.colors.primary,
+          backgroundColor: this.colors.primary + '20',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          title: {
+            display: true,
+            text: title
+          }
+        }
+      }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const imageData = canvas.toDataURL('image/png');
+    this.checkPageBreak(80);
+    this.pdf.addImage(imageData, 'PNG', this.margin, this.currentY, 160, 60);
+    this.currentY += 70;
+
+    chart.destroy();
+  }
+
+  /**
+   * Añade gráfico circular
+   */
+  private async addPieChart(labels: string[], data: number[], title: string): Promise<void> {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return;
+
+    const colors = [
+      '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd',
+      '#059669', '#10b981', '#34d399', '#6ee7b7'
+    ];
+
+    const chart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          title: {
+            display: true,
+            text: title
+          }
+        }
+      }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const imageData = canvas.toDataURL('image/png');
+    this.checkPageBreak(80);
+    this.pdf.addImage(imageData, 'PNG', this.margin, this.currentY, 160, 60);
+    this.currentY += 70;
+
+    chart.destroy();
+  }
+
+  /**
+   * Verifica si necesita nueva página
+   */
+  private checkPageBreak(requiredSpace: number = 20): void {
+    if (this.currentY + requiredSpace > this.pageHeight - this.margin) {
+      this.addNewPage();
+    }
+  }
+
+  /**
+   * Añade nueva página
+   */
+  private addNewPage(): void {
+    this.pdf.addPage();
+    this.currentY = this.margin;
+  }
+
+  /**
+   * Calcula distribución por intención
+   */
+  private calculateIntentDistribution(keywords: any[]): Record<string, number> {
+    return keywords.reduce((acc, keyword) => {
+      acc[keyword.intent] = (acc[keyword.intent] || 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  /**
+   * Calcula distribución por dificultad
+   */
+  private calculateDifficultyDistribution(keywords: any[]): Record<string, number> {
+    return keywords.reduce((acc, keyword) => {
+      let range = '';
+      if (keyword.difficulty < 20) range = 'Very Easy (0-19)';
+      else if (keyword.difficulty < 35) range = 'Easy (20-34)';
+      else if (keyword.difficulty < 50) range = 'Medium (35-49)';
+      else if (keyword.difficulty < 65) range = 'Hard (50-64)';
+      else if (keyword.difficulty < 80) range = 'Very Hard (65-79)';
+      else range = 'Extremely Hard (80-100)';
+
+      acc[range] = (acc[range] || 0) + 1;
+      return acc;
+    }, {});
+  }
+}
+
+export default PDFReportGenerator;
+export type { ReportData, PdfOptions };

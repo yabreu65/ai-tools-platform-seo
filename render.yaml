@@ -1,0 +1,122 @@
+services:
+  # Frontend - Next.js
+  - type: web
+    name: ya-tools-frontend
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd apps/web && pnpm install && pnpm build
+    startCommand: cd apps/web && pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: ya-tools-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: OPENAI_API_KEY
+        sync: false
+    healthCheckPath: /
+
+  # Backend - Express API
+  - type: web
+    name: ya-tools-backend
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd packages/api && pnpm install && pnpm build
+    startCommand: cd packages/api && pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: PAGESPEED_API_KEY
+        sync: false
+      - key: GOOGLE_CX
+        sync: false
+      - key: MONGODB_URI
+        fromDatabase:
+          name: ya-tools-mongodb
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: ya-tools-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+    healthCheckPath: /health
+
+  # n8n - Automatización (Opcional)
+  - type: web
+    name: ya-tools-n8n
+    env: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile.n8n
+    envVars:
+      - key: N8N_PORT
+        value: 5678
+      - key: N8N_PROTOCOL
+        value: https
+      - key: N8N_RUNNERS_ENABLED
+        value: true
+      - key: N8N_EDITOR_BASE_URL
+        fromService:
+          type: web
+          name: ya-tools-n8n
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: N8N_API_KEY
+        generateValue: true
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: true
+      - key: N8N_BASIC_AUTH_USER
+        value: admin
+      - key: N8N_BASIC_AUTH_PASSWORD
+        sync: false
+      - key: DB_TYPE
+        value: postgresdb
+      - key: DB_POSTGRESDB_HOST
+        fromDatabase:
+          name: ya-tools-postgres
+          property: host
+      - key: DB_POSTGRESDB_PORT
+        fromDatabase:
+          name: ya-tools-postgres
+          property: port
+      - key: DB_POSTGRESDB_DATABASE
+        fromDatabase:
+          name: ya-tools-postgres
+          property: database
+      - key: DB_POSTGRESDB_USER
+        fromDatabase:
+          name: ya-tools-postgres
+          property: user
+      - key: DB_POSTGRESDB_PASSWORD
+        fromDatabase:
+          name: ya-tools-postgres
+          property: password
+
+databases:
+  # MongoDB
+  - name: ya-tools-mongodb
+    plan: starter
+    databaseName: ai-tools-platform
+    user: aitools
+
+  # Redis
+  - name: ya-tools-redis
+    plan: starter
+
+  # PostgreSQL (para n8n)
+  - name: ya-tools-postgres
+    plan: starter
+    databaseName: n8n
+    user: n8n

@@ -1,0 +1,119 @@
+{
+  "name": "Competitor Analysis Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "competitor-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "competitor-analysis-webhook"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extraer datos del webhook\nconst { analysisId, competitors, analysisTypes, userPlan } = $json;\n\n// Validar datos de entrada\nif (!analysisId || !competitors || !Array.isArray(competitors)) {\n  throw new Error('Datos de entrada inválidos');\n}\n\n// Configurar límites según el plan\nconst planLimits = {\n  basic: { maxCompetitors: 3, timeout: 30000 },\n  premium: { maxCompetitors: 10, timeout: 60000 },\n  enterprise: { maxCompetitors: 50, timeout: 120000 }\n};\n\nconst limits = planLimits[userPlan] || planLimits.basic;\n\n// Limitar competidores según el plan\nconst limitedCompetitors = competitors.slice(0, limits.maxCompetitors);\n\n// Preparar datos para procesamiento\nreturn {\n  analysisId,\n  competitors: limitedCompetitors,\n  analysisTypes: analysisTypes || ['seo', 'technical', 'content'],\n  userPlan,\n  limits,\n  startTime: new Date().toISOString(),\n  totalCompetitors: limitedCompetitors.length\n};"
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "competitor_analyses",
+        "updateKey": "analysisId",
+        "fieldsUi": {
+          "field": [
+            {
+              "fieldName": "status",
+              "fieldValue": "processing"
+            },
+            {
+              "fieldName": "startedAt",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldName": "progress.current",
+              "fieldValue": "0"
+            },
+            {
+              "fieldName": "progress.total",
+              "fieldValue": "={{ $json.totalCompetitors }}"
+            }
+          ]
+        }
+      },
+      "id": "update-status-processing",
+      "name": "Update Status - Processing",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "mongoDb": {
+          "id": "mongodb-credentials",
+          "name": "MongoDB Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-competitors",
+      "name": "Split Competitors",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Obtener datos del competidor actual\nconst competitor = $json.competitors[$json.batchIndex];\nconst { analysisId, analysisTypes, limits } = $json;\n\nif (!competitor || !competitor.url) {\n  throw new Error(`Competidor inválido en índice ${$json.batchIndex}`);\n}\n\n// Preparar datos para scraping\nreturn {\n  analysisId,\n  competitor,\n  analysisTypes,\n  batchIndex: $json.batchIndex,\n  totalBatches: $json.totalBatches,\n  timeout: limits.timeout,\n  url: competitor.url,\n  name: competitor.name || competitor.url\n};"
+      },
+      "id": "prepare-competitor",
+      "name": "Prepare Competitor",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Simular scraping con Puppeteer\nconst { url, name, analysisTypes, timeout } = $json;\n\n// Función para simular delay realista\nconst delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));\n\n// Simular tiempo de carga\nawait delay(Math.random() * 2000 + 1000);\n\n// Generar datos SEO realistas basados en la URL\nconst urlHash = url.split('').reduce((a, b) => {\n  a = ((a << 5) - a) + b.charCodeAt(0);\n  return a & a;\n}, 0);\n\nconst baseScore = Math.abs(urlHash % 40) + 60; // Score entre 60-100\n\n// Datos SEO básicos\nconst seoData = {\n  url,\n  title: `${name} - Página Principal`,\n  metaDescription: `Descripción meta para ${name}. Contenido optimizado para SEO.`,\n  headings: {\n    h1: [`${name} - Líder en su Sector`],\n    h2: ['Servicios', 'Sobre Nosotros', 'Contacto'],\n    h3: ['Calidad', 'Experiencia', 'Resultados']\n  },\n  images: {\n    total: Math.abs(urlHash % 20) + 10,\n    withAlt: Math.abs(urlHash % 15) + 8,\n    withoutAlt: Math.abs(urlHash % 5) + 2\n  },\n  links: {\n    internal: Math.abs(urlHash % 50) + 20,\n    external: Math.abs(urlHash % 10) + 5,\n    nofollow: Math.abs(urlHash % 8) + 2\n  },\n  wordCount: Math.abs(urlHash % 1000) + 500,\n  loadTime: Math.abs(urlHash % 3000) + 1000,\n  mobileScore: baseScore + Math.abs(urlHash % 10) - 5,\n  seoScore: baseScore\n};\n\n// Core Web Vitals\nconst coreWebVitals = {\n  lcp: Math.abs(urlHash % 2000) + 1500, // Largest Contentful Paint\n  fid: Math.abs(urlHash % 80) + 20,     // First Input Delay\n  cls: (Math.abs(urlHash % 20) + 5) / 100, // Cumulative Layout Shift\n  fcp: Math.abs(urlHash % 1500) + 1000, // First Contentful Paint\n  ttfb: Math.abs(urlHash % 500) + 200   // Time to First Byte\n};\n\n// Análisis técnico\nconst technicalData = {\n  ssl: Math.random() > 0.1, // 90% tienen SSL\n  gzip: Math.random() > 0.2, // 80% usan compresión\n  minification: Math.random() > 0.3, // 70% minifican\n  caching: Math.random() > 0.25, // 75% usan cache\n  responsive: Math.random() > 0.05, // 95% son responsive\n  technologies: [\n    'React', 'WordPress', 'Google Analytics', 'jQuery'\n  ].filter(() => Math.random() > 0.4)\n};\n\n// Keywords simuladas\nconst keywords = [\n  { keyword: `${name.toLowerCase()} servicios`, density: 2.5, count: 15 },\n  { keyword: `mejor ${name.toLowerCase()}`, density: 1.8, count: 11 },\n  { keyword: `${name.toLowerCase()} profesional`, density: 1.2, count: 7 }\n];\n\n// Backlinks simulados\nconst backlinks = {\n  total: Math.abs(urlHash % 1000) + 100,\n  dofollow: Math.abs(urlHash % 800) + 80,\n  nofollow: Math.abs(urlHash % 200) + 20,\n  domains: Math.abs(urlHash % 50) + 10,\n  quality: baseScore / 100\n};\n\nreturn {\n  analysisId: $json.analysisId,\n  competitor: {\n    url,\n    name,\n    seoData,\n    coreWebVitals,\n    technicalData,\n    keywords,\n    backlinks,\n    analyzedAt: new Date().toISOString(),\n    processingTime: Math.random() * 5000 + 2000\n  },\n  batchIndex: $json.batchIndex,\n  totalBatches: $json.totalBatches\n};"
+      },
+      "id": "scrape-competitor",
+      "name": "Scrape Competitor Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "competitor_analyses",
+        "updateKey": "analysisId",
+        "fieldsUi": {
+          "field": [
+            {
+              "fieldName": "progress.current",
+              "fieldValue": "={{ $json.batchIndex + 1 }}"
+            },
+            {
+              "fieldName": "results.competitors",
+              "fieldValue": "={{ $json.competitor }}"
+            },
+            {
+              "fieldName": "updatedAt",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {
+          "upsert": false\n        }\n      },\n      \"id\": \"update-progress\",\n      \"name\": \"Update Progress\",\n      \"type\": \"n8n-nodes-base.mongoDb\",\n      \"typeVersion\": 1,\n      \"position\": [1560, 300],\n      \"credentials\": {\n        \"mongoDb\": {\n          \"id\": \"mongodb-credentials\",\n          \"name\": \"MongoDB Credentials\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"functionCode\": \"// Verificar si es el último batch\\nconst { batchIndex, totalBatches } = $json;\\n\\nif (batchIndex + 1 >= totalBatches) {\\n  // Es el último, preparar finalización\\n  return {\\n    analysisId: $json.analysisId,\\n    isComplete: true,\\n    completedAt: new Date().toISOString()\\n  };\\n} else {\\n  // No es el último, continuar\\n  return {\\n    analysisId: $json.analysisId,\\n    isComplete: false,\\n    batchIndex: batchIndex + 1\\n  };\\n}\"\n      },\n      \"id\": \"check-completion\",\n      \"name\": \"Check Completion\",\n      \"type\": \"n8n-nodes-base.function\",\n      \"typeVersion\": 1,\n      \"position\": [1780, 300]\n    },\n    {\n      \"parameters\": {\n        \"conditions\": {\n          \"boolean\": [\n            {\n              \"value1\": \"={{ $json.isComplete }}\",\n              \"value2\": true\n            }\n          ]\n        }\n      },\n      \"id\": \"is-complete\",\n      \"name\": \"Is Complete?\",\n      \"type\": \"n8n-nodes-base.if\",\n      \"typeVersion\": 1,\n      \"position\": [2000, 300]\n    },\n    {\n      \"parameters\": {\n        \"operation\": \"update\",\n        \"collection\": \"competitor_analyses\",\n        \"updateKey\": \"analysisId\",\n        \"fieldsUi\": {\n          \"field\": [\n            {\n              \"fieldName\": \"status\",\n              \"fieldValue\": \"completed\"\n            },\n            {\n              \"fieldName\": \"completedAt\",\n              \"fieldValue\": \"={{ $json.completedAt }}\"\n            },\n            {\n              \"fieldName\": \"progress.completed\",\n              \"fieldValue\": true\n            }\n          ]\n        }\n      },\n      \"id\": \"finalize-analysis\",\n      \"name\": \"Finalize Analysis\",\n      \"type\": \"n8n-nodes-base.mongoDb\",\n      \"typeVersion\": 1,\n      \"position\": [2220, 200],\n      \"credentials\": {\n        \"mongoDb\": {\n          \"id\": \"mongodb-credentials\",\n          \"name\": \"MongoDB Credentials\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"url\": \"={{ $env.NEXTJS_WEBHOOK_URL }}/api/competitor-analysis/webhook\",\n        \"sendBody\": true,\n        \"bodyContentType\": \"json\",\n        \"jsonBody\": \"={ \\\"analysisId\\\": \\\"{{ $json.analysisId }}\\\", \\\"type\\\": \\\"competitor\\\", \\\"status\\\": \\\"completed\\\", \\\"completedAt\\\": \\\"{{ $json.completedAt }}\\\" }\",\n        \"options\": {}\n      },\n      \"id\": \"notify-completion\",\n      \"name\": \"Notify Completion\",\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 3,\n      \"position\": [2440, 200]\n    },\n    {\n      \"parameters\": {\n        \"respondWith\": \"json\",\n        \"responseBody\": \"={ \\\"success\\\": true, \\\"analysisId\\\": \\\"{{ $json.analysisId }}\\\", \\\"status\\\": \\\"completed\\\" }\"\n      },\n      \"id\": \"response-success\",\n      \"name\": \"Response Success\",\n      \"type\": \"n8n-nodes-base.respondToWebhook\",\n      \"typeVersion\": 1,\n      \"position\": [2660, 200]\n    },\n    {\n      \"parameters\": {\n        \"respondWith\": \"json\",\n        \"responseBody\": \"={ \\\"success\\\": true, \\\"analysisId\\\": \\\"{{ $json.analysisId }}\\\", \\\"status\\\": \\\"processing\\\", \\\"progress\\\": {{ $json.batchIndex + 1 }} }\"\n      },\n      \"id\": \"response-processing\",\n      \"name\": \"Response Processing\",\n      \"type\": \"n8n-nodes-base.respondToWebhook\",\n      \"typeVersion\": 1,\n      \"position\": [2220, 400]\n    }\n  ],\n  \"connections\": {\n    \"webhook-trigger\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"validate-input\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"validate-input\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"update-status-processing\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"update-status-processing\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"split-competitors\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"split-competitors\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"prepare-competitor\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"prepare-competitor\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"scrape-competitor\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"scrape-competitor\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"update-progress\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"update-progress\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"check-completion\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"check-completion\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"is-complete\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"is-complete\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"finalize-analysis\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ],\n        [\n          {\n            \"node\": \"response-processing\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"finalize-analysis\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"notify-completion\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"notify-completion\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"response-success\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    }\n  },\n  \"active\": true,\n  \"settings\": {\n    \"timezone\": \"America/New_York\",\n    \"saveManualExecutions\": true,\n    \"callerPolicy\": \"workflowsFromSameOwner\"\n  },\n  \"versionId\": \"1\",\n  \"id\": \"competitor-analysis-workflow\",\n  \"meta\": {\n    \"instanceId\": \"n8n-seo-analyzer\"\n  },\n  \"tags\": [\n    {\n      \"createdAt\": \"2024-01-15T10:00:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:00:00.000Z\",\n      \"id\": \"seo-analysis\",\n      \"name\": \"SEO Analysis\"\n    }\n  ]\n}

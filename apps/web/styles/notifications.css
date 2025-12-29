@@ -1,0 +1,197 @@
+/* Advanced Notification Styles */
+
+/* High priority notifications */
+.notification-high-priority {
+  @apply border-l-4 border-red-500 shadow-lg;
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-left-color: rgb(239 68 68);
+  }
+  50% {
+    border-left-color: rgb(220 38 38);
+  }
+}
+
+/* Notification type specific styles */
+.notification-success {
+  @apply bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800;
+}
+
+.notification-error {
+  @apply bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800;
+}
+
+.notification-warning {
+  @apply bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800;
+}
+
+.notification-info {
+  @apply bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800;
+}
+
+.notification-loading {
+  @apply bg-gray-50 border-gray-200 dark:bg-gray-950 dark:border-gray-800;
+}
+
+/* Connection status indicator */
+.connection-indicator {
+  @apply fixed top-0 left-0 right-0 z-50 transition-all duration-300;
+}
+
+.connection-indicator.offline {
+  @apply bg-yellow-500 text-yellow-900;
+}
+
+.connection-indicator.online {
+  @apply bg-green-500 text-green-900;
+}
+
+/* Notification queue styles */
+.notification-queue {
+  @apply fixed bottom-4 right-4 max-w-sm space-y-2 z-40;
+}
+
+.notification-queue-item {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-lg border p-4 transition-all duration-300;
+}
+
+.notification-queue-item.entering {
+  @apply transform translate-x-full opacity-0;
+}
+
+.notification-queue-item.entered {
+  @apply transform translate-x-0 opacity-100;
+}
+
+.notification-queue-item.exiting {
+  @apply transform translate-x-full opacity-0;
+}
+
+/* Action buttons in notifications */
+.notification-action {
+  @apply inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors;
+}
+
+.notification-action.primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.notification-action.destructive {
+  @apply bg-red-500 text-white hover:bg-red-600;
+}
+
+.notification-action.secondary {
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+
+/* Undo notification specific styles */
+.notification-undo {
+  @apply bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800;
+}
+
+.notification-undo .notification-action {
+  @apply bg-blue-500 text-white hover:bg-blue-600;
+}
+
+/* Retry notification specific styles */
+.notification-retry {
+  @apply bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800;
+}
+
+.notification-retry .notification-action {
+  @apply bg-orange-500 text-white hover:bg-orange-600;
+}
+
+/* Progress indicator for loading notifications */
+.notification-progress {
+  @apply absolute bottom-0 left-0 h-1 bg-primary transition-all duration-300;
+}
+
+/* Notification dismiss button */
+.notification-dismiss {
+  @apply absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .notification-queue {
+    @apply left-4 right-4 max-w-none;
+  }
+  
+  .notification-queue-item {
+    @apply p-3;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .notification-success {
+    @apply bg-green-950/50 border-green-800/50;
+  }
+  
+  .notification-error {
+    @apply bg-red-950/50 border-red-800/50;
+  }
+  
+  .notification-warning {
+    @apply bg-yellow-950/50 border-yellow-800/50;
+  }
+  
+  .notification-info {
+    @apply bg-blue-950/50 border-blue-800/50;
+  }
+  
+  .notification-loading {
+    @apply bg-gray-950/50 border-gray-800/50;
+  }
+}
+
+/* Animation for notification entrance */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.notification-enter {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.notification-exit {
+  animation: slideOutRight 0.3s ease-in;
+}
+
+/* Notification priority indicators */
+.notification-priority-high::before {
+  content: '';
+  @apply absolute left-0 top-0 bottom-0 w-1 bg-red-500 rounded-l-lg;
+}
+
+.notification-priority-medium::before {
+  content: '';
+  @apply absolute left-0 top-0 bottom-0 w-1 bg-yellow-500 rounded-l-lg;
+}
+
+.notification-priority-low::before {
+  content: '';
+  @apply absolute left-0 top-0 bottom-0 w-1 bg-gray-400 rounded-l-lg;
+}

@@ -1,0 +1,18 @@
+{
+  "name": "db-mongodb",
+  "version": "1.0.0",
+  "description": "MongoDB database models and connection utilities",
+  "main": "connect.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "mongoose": "^8.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "typescript": "^5.8.3"
+  }
+}

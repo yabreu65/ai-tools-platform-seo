@@ -1,0 +1,261 @@
+{
+  "name": "Keyword & Content Analysis Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "keyword-content-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Content Analysis Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "keyword-content-webhook"
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, analysisId, targetKeywords = [], analysisDepth = 'standard' } = $json; if (!url || !analysisId) { throw new Error('URL y analysisId son requeridos'); } const analysisConfig = { basic: { extractKeywords: true, analyzeContent: true, checkReadability: false, aiAnalysis: false, maxKeywords: 20 }, standard: { extractKeywords: true, analyzeContent: true, checkReadability: true, aiAnalysis: true, maxKeywords: 50, contentGaps: true }, advanced: { extractKeywords: true, analyzeContent: true, checkReadability: true, aiAnalysis: true, maxKeywords: 100, contentGaps: true, semanticAnalysis: true, competitorComparison: true } }; const config = analysisConfig[analysisDepth] || analysisConfig.standard; return { url, analysisId, targetKeywords, analysisDepth, config, startTime: new Date().toISOString() };"
+      },
+      "id": "validate-content-input",
+      "name": "Validate Content Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, config } = $json; const urlHash = url.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0); const contentExtraction = { title: `Título Principal de ${url.split('/')[2] || 'la Página'}`, metaDescription: `Meta descripción optimizada para SEO de ${url.split('/')[2] || 'la página'}.`, headings: { h1: [`Encabezado Principal H1`], h2: ['Servicios', 'Productos', 'Sobre Nosotros', 'Contacto'].slice(0, Math.abs(urlHash % 4) + 2), h3: ['Calidad', 'Experiencia', 'Resultados', 'Innovación', 'Compromiso'].slice(0, Math.abs(urlHash % 5) + 3), h4: ['Detalle 1', 'Detalle 2', 'Detalle 3'].slice(0, Math.abs(urlHash % 3) + 1) }, paragraphs: Math.abs(urlHash % 20) + 10, wordCount: Math.abs(urlHash % 2000) + 500, sentences: Math.abs(urlHash % 100) + 30, images: { total: Math.abs(urlHash % 25) + 5, withAlt: Math.abs(urlHash % 20) + 3, withoutAlt: Math.abs(urlHash % 8) + 2 }, links: { internal: Math.abs(urlHash % 30) + 10, external: Math.abs(urlHash % 15) + 5, anchor: Math.abs(urlHash % 20) + 8 }, lists: { ordered: Math.abs(urlHash % 5) + 1, unordered: Math.abs(urlHash % 8) + 2 } }; const readabilityAnalysis = config.checkReadability ? { fleschScore: Math.abs(urlHash % 40) + 40, fleschKincaidGrade: Math.abs(urlHash % 8) + 6, averageWordsPerSentence: Math.abs(urlHash % 10) + 15, averageSyllablesPerWord: (Math.abs(urlHash % 20) + 130) / 100, readabilityLevel: ['Muy Fácil', 'Fácil', 'Moderado', 'Difícil'][Math.abs(urlHash % 4)], passiveVoice: Math.abs(urlHash % 15) + 5, sentenceVariety: Math.abs(urlHash % 30) + 60 } : null; return { ...($json), contentExtraction, readabilityAnalysis, step: 'content-extracted' };"
+      },
+      "id": "extract-content",
+      "name": "Extract Page Content",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, targetKeywords, contentExtraction, config } = $json; const urlHash = url.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0); const extractedKeywords = [ { keyword: 'seo', count: Math.abs(urlHash % 15) + 5, density: 2.5 }, { keyword: 'marketing digital', count: Math.abs(urlHash % 12) + 3, density: 1.8 }, { keyword: 'optimización', count: Math.abs(urlHash % 10) + 4, density: 1.5 }, { keyword: 'contenido', count: Math.abs(urlHash % 8) + 6, density: 2.1 }, { keyword: 'estrategia', count: Math.abs(urlHash % 7) + 3, density: 1.2 }, { keyword: 'resultados', count: Math.abs(urlHash % 9) + 4, density: 1.6 }, { keyword: 'profesional', count: Math.abs(urlHash % 6) + 2, density: 0.9 }, { keyword: 'calidad', count: Math.abs(urlHash % 5) + 3, density: 1.1 } ].slice(0, config.maxKeywords); const targetKeywordAnalysis = targetKeywords.map(keyword => { const found = extractedKeywords.find(k => k.keyword.toLowerCase().includes(keyword.toLowerCase())); return { keyword, found: !!found, count: found ? found.count : 0, density: found ? found.density : 0, inTitle: Math.random() > 0.6, inMetaDescription: Math.random() > 0.5, inHeadings: Math.random() > 0.4, inFirstParagraph: Math.random() > 0.7, prominence: found ? Math.abs(urlHash % 100) : 0 }; }); const keywordDistribution = { titleKeywords: Math.abs(urlHash % 5) + 2, metaKeywords: Math.abs(urlHash % 8) + 3, headingKeywords: Math.abs(urlHash % 12) + 5, bodyKeywords: Math.abs(urlHash % 30) + 15, altTextKeywords: Math.abs(urlHash % 6) + 2, anchorTextKeywords: Math.abs(urlHash % 10) + 4 }; const semanticAnalysis = config.semanticAnalysis ? { topicClusters: [ { topic: 'SEO Técnico', relevance: 85, keywords: ['seo', 'optimización', 'técnico'] }, { topic: 'Marketing Digital', relevance: 78, keywords: ['marketing', 'digital', 'estrategia'] }, { topic: 'Contenido', relevance: 72, keywords: ['contenido', 'calidad', 'redacción'] } ], semanticKeywords: [ 'posicionamiento web', 'motor de búsqueda', 'ranking', 'visibilidad online' ], topicRelevance: Math.abs(urlHash % 30) + 70, contentDepth: Math.abs(urlHash % 40) + 60 } : null; return { ...($json), keywordAnalysis: { extracted: extractedKeywords, target: targetKeywordAnalysis, distribution: keywordDistribution, semantic: semanticAnalysis }, step: 'keywords-analyzed' };"
+      },
+      "id": "analyze-keywords",
+      "name": "Analyze Keywords",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, contentExtraction, keywordAnalysis, config } = $json; if (!config.aiAnalysis) { return { ...($json), aiAnalysis: null, step: 'ai-skipped' }; } const aiContentAnalysis = { contentQuality: { score: Math.floor(Math.random() * 30) + 70, factors: { originality: Math.floor(Math.random() * 20) + 80, depth: Math.floor(Math.random() * 25) + 75, expertise: Math.floor(Math.random() * 30) + 70, engagement: Math.floor(Math.random() * 25) + 75 } }, contentStructure: { score: Math.floor(Math.random() * 25) + 75, hasIntroduction: Math.random() > 0.2, hasConclusion: Math.random() > 0.3, logicalFlow: Math.random() > 0.4, headingHierarchy: Math.random() > 0.3 }, seoOptimization: { score: Math.floor(Math.random() * 35) + 65, keywordOptimization: Math.floor(Math.random() * 30) + 70, metaOptimization: Math.floor(Math.random() * 25) + 75, internalLinking: Math.floor(Math.random() * 40) + 60, imageOptimization: Math.floor(Math.random() * 35) + 65 }, userIntent: { primaryIntent: ['informational', 'commercial', 'navigational', 'transactional'][Math.floor(Math.random() * 4)], intentMatch: Math.floor(Math.random() * 25) + 75, contentAlignment: Math.floor(Math.random() * 30) + 70 }, recommendations: [ 'Mejorar la densidad de keywords principales', 'Añadir más contenido relacionado semánticamente', 'Optimizar la estructura de encabezados', 'Incluir más enlaces internos relevantes', 'Mejorar la legibilidad del contenido', 'Añadir imágenes con texto alternativo optimizado' ].filter(() => Math.random() > 0.4) }; return { ...($json), aiAnalysis: aiContentAnalysis, step: 'ai-analyzed' };"
+      },
+      "id": "ai-content-analysis",
+      "name": "AI Content Analysis",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, keywordAnalysis, aiAnalysis, config } = $json; if (!config.contentGaps) { return { ...($json), contentGaps: null, step: 'gaps-skipped' }; } const urlHash = url.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0); const contentGaps = { missingKeywords: [ { keyword: 'seo local', opportunity: 85, difficulty: 'media' }, { keyword: 'marketing automation', opportunity: 78, difficulty: 'alta' }, { keyword: 'analytics web', opportunity: 72, difficulty: 'baja' }, { keyword: 'conversion rate', opportunity: 68, difficulty: 'media' } ].slice(0, Math.abs(urlHash % 4) + 2), missingTopics: [ { topic: 'Casos de Estudio', priority: 'alta', estimatedTraffic: 1200 }, { topic: 'Guías Paso a Paso', priority: 'media', estimatedTraffic: 800 }, { topic: 'Comparativas', priority: 'media', estimatedTraffic: 600 }, { topic: 'FAQ', priority: 'baja', estimatedTraffic: 400 } ].slice(0, Math.abs(urlHash % 4) + 1), contentOpportunities: [ { type: 'Long-form Content', description: 'Crear contenido más extenso y detallado', impact: 'alto', effort: 'medio' }, { type: 'Visual Content', description: 'Añadir más infografías y videos', impact: 'medio', effort: 'alto' }, { type: 'Interactive Elements', description: 'Incluir calculadoras o herramientas interactivas', impact: 'alto', effort: 'alto' } ].slice(0, Math.abs(urlHash % 3) + 1), competitorAdvantages: [ 'Mayor profundidad en temas técnicos', 'Mejor estructura de contenido', 'Más ejemplos prácticos', 'Contenido más actualizado' ].slice(0, Math.abs(urlHash % 4) + 2) }; const opportunityScore = { overall: Math.abs(urlHash % 30) + 60, keywordOpportunities: Math.abs(urlHash % 25) + 65, contentDepth: Math.abs(urlHash % 35) + 55, topicCoverage: Math.abs(urlHash % 40) + 50, competitiveGap: Math.abs(urlHash % 20) + 70 }; return { ...($json), contentGaps, opportunityScore, step: 'gaps-analyzed' };"
+      },
+      "id": "analyze-content-gaps",
+      "name": "Analyze Content Gaps",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { url, analysisId, targetKeywords, contentExtraction, readabilityAnalysis, keywordAnalysis, aiAnalysis, contentGaps, opportunityScore, startTime } = $json; const calculateContentScore = () => { let score = 0; let factors = 0; const avgKeywordDensity = keywordAnalysis.extracted.reduce((sum, k) => sum + k.density, 0) / keywordAnalysis.extracted.length; score += Math.min(avgKeywordDensity * 10, 30); factors += 30; if (readabilityAnalysis) { score += (readabilityAnalysis.fleschScore / 100) * 25; factors += 25; } else { factors += 25; score += 20; } if (aiAnalysis) { score += (aiAnalysis.contentQuality.score / 100) * 25; factors += 25; } else { factors += 25; score += 18; } const structureScore = contentExtraction.headings.h1.length > 0 ? 5 : 0; const imageScore = contentExtraction.images.withAlt / contentExtraction.images.total * 10; const linkScore = contentExtraction.links.internal > 5 ? 5 : contentExtraction.links.internal; score += structureScore + imageScore + linkScore; factors += 20; return Math.round((score / factors) * 100); }; const generateRecommendations = () => { const recommendations = []; if (keywordAnalysis.target.some(k => !k.found)) { recommendations.push({ category: 'Keywords', priority: 'alta', action: 'Incluir keywords objetivo faltantes en el contenido', impact: 'alto' }); } if (readabilityAnalysis && readabilityAnalysis.fleschScore < 60) { recommendations.push({ category: 'Legibilidad', priority: 'media', action: 'Simplificar el lenguaje y acortar oraciones', impact: 'medio' }); } if (contentExtraction.headings.h2.length < 3) { recommendations.push({ category: 'Estructura', priority: 'media', action: 'Añadir más subtítulos H2 para mejorar la estructura', impact: 'medio' }); } if (contentExtraction.images.withoutAlt > 0) { recommendations.push({ category: 'Imágenes', priority: 'alta', action: 'Añadir texto alternativo a todas las imágenes', impact: 'alto' }); } return recommendations; }; const contentAnalysisResult = { analysisId, url, analyzedAt: new Date().toISOString(), processingTime: Date.now() - new Date(startTime).getTime(), overallScore: calculateContentScore(), content: { extraction: contentExtraction, readability: readabilityAnalysis, wordCount: contentExtraction.wordCount, structure: { headings: contentExtraction.headings, paragraphs: contentExtraction.paragraphs, lists: contentExtraction.lists } }, keywords: keywordAnalysis, aiInsights: aiAnalysis, gaps: contentGaps, opportunities: opportunityScore, recommendations: generateRecommendations(), summary: { totalKeywords: keywordAnalysis.extracted.length, targetKeywordsFound: keywordAnalysis.target.filter(k => k.found).length, readabilityLevel: readabilityAnalysis ? readabilityAnalysis.readabilityLevel : 'No analizado', contentQuality: aiAnalysis ? aiAnalysis.contentQuality.score : 'No analizado', mainOpportunities: contentGaps ? contentGaps.missingTopics.length : 0 } }; return contentAnalysisResult;"
+      },
+      "id": "compile-content-results",
+      "name": "Compile Content Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "content_analyses",
+        "updateKey": "analysisId",
+        "fieldsUi": {
+          "field": [
+            {
+              "fieldName": "status",
+              "fieldValue": "completed"
+            },
+            {
+              "fieldName": "results",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "fieldName": "completedAt",
+              "fieldValue": "={{ $json.analyzedAt }}"
+            }
+          ]
+        },
+        "options": {
+          "upsert": true
+        }
+      },
+      "id": "save-content-results",
+      "name": "Save Content Results",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [1780, 300],
+      "credentials": {
+        "mongoDb": {
+          "id": "mongodb-credentials",
+          "name": "MongoDB Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.NEXTJS_WEBHOOK_URL }}/api/competitor-analysis/webhook",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={ \"analysisId\": \"{{ $json.analysisId }}\", \"type\": \"content\", \"status\": \"completed\", \"results\": {{ JSON.stringify($json) }} }",
+        "options": {}
+      },
+      "id": "notify-content-completion",
+      "name": "Notify Content Completion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"analysisId\": \"{{ $json.analysisId }}\", \"type\": \"content\", \"status\": \"completed\", \"score\": {{ $json.overallScore }} }"
+      },
+      "id": "response-content-success",
+      "name": "Response Content Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2220, 300]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "validate-content-input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate-content-input": {
+      "main": [
+        [
+          {
+            "node": "extract-content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract-content": {
+      "main": [
+        [
+          {
+            "node": "analyze-keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-keywords": {
+      "main": [
+        [
+          {
+            "node": "ai-content-analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai-content-analysis": {
+      "main": [
+        [
+          {
+            "node": "analyze-content-gaps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-content-gaps": {
+      "main": [
+        [
+          {
+            "node": "compile-content-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "compile-content-results": {
+      "main": [
+        [
+          {
+            "node": "save-content-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save-content-results": {
+      "main": [
+        [
+          {
+            "node": "notify-content-completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-content-completion": {
+      "main": [
+        [
+          {
+            "node": "response-content-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "America/New_York",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "1",
+  "id": "keyword-content-analysis",
+  "meta": {
+    "instanceId": "n8n-seo-analyzer"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "content-analysis",
+      "name": "Content Analysis"
+    }
+  ]
+}

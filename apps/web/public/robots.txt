@@ -1,0 +1,53 @@
+# Robots.txt para YA Tools - Herramientas SEO con IA
+# https://yatools.com/robots.txt
+
+# Permitir acceso a todos los bots para contenido público
+User-agent: *
+Allow: /
+
+# Bloquear acceso a áreas privadas y archivos del sistema
+Disallow: /api/
+Disallow: /_next/
+Disallow: /dashboard/
+Disallow: /analisis/
+Disallow: /login
+Disallow: /registro
+Disallow: /admin/
+Disallow: /*.json$
+Disallow: /*?*
+Disallow: /uploads/
+Disallow: /temp/
+
+# Permitir específicamente a los bots principales acceso a páginas importantes
+User-agent: Googlebot
+Allow: /
+Allow: /generar-titulo-seo
+Allow: /optimizador-contenido
+Allow: /detector-contenido-duplicado
+Allow: /seo-audit-tool
+Allow: /vitals-checker-tool
+Allow: /generador-sitemap
+Allow: /generador-robots
+Allow: /keyword-scraper-tool
+Allow: /analizador-competencia
+Allow: /renombrador-images
+Allow: /compresor-imagenes
+Allow: /verificador-enlaces
+
+User-agent: Bingbot
+Allow: /
+Allow: /generar-titulo-seo
+Allow: /optimizador-contenido
+Allow: /detector-contenido-duplicado
+Allow: /seo-audit-tool
+
+# Configuración específica para crawl delay
+User-agent: *
+Crawl-delay: 1
+
+# Ubicación del sitemap
+Sitemap: https://yatools.com/sitemap.xml
+
+# Información adicional
+# Host: yatools.com
+# Última actualización: 2024-12-30

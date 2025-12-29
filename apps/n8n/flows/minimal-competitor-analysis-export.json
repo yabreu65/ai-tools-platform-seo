@@ -1,0 +1,48 @@
+{
+  "id": "MinimalCompetitorAnalysis",
+  "name": "Minimal Competitor Analysis",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "competitor-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { analysisId, competitors } = $json;\nif (!analysisId || !competitors || !Array.isArray(competitors)) {\n  throw new Error('Datos de entrada inválidos');\n}\nconst normalized = competitors.map(c => typeof c === 'string' ? { url: c, name: c } : c);\nreturn {\n  analysisId,\n  competitors: normalized.slice(0, 5),\n  processedAt: new Date().toISOString()\n};"
+      },
+      "id": "process-input",
+      "name": "Process Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [760, 300]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": { "main": [[{ "node": "process-input", "type": "main", "index": 0 }]] },
+    "process-input": { "main": [[{ "node": "respond-success", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "saveManualExecutions": true },
+  "pinData": {},
+  "staticData": null,
+  "createdAt": "2025-11-

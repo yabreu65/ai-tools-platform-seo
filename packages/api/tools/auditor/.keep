@@ -1,0 +1,24 @@
+Podría usar una de las variedades del paquete `fs` para llevar a cabo la tarea. A continuación te dejo un ejemplo:
+
+```javascript
+const fs = require('fs');
+const path = require('path'); 
+
+// Verifica si el directorio ya existe
+if (!fs.existsSync(path.join(__dirname, 'backend-node', 'tools'))) {
+    // Si no existe, se crea
+    fs.mkdirSync(path.join(__dirname, 'backend-node', 'tools'));
+}
+
+// Verifica si el archivo ya existe
+if (!fs.existsSync(path.join(__dirname, 'backend-node', 'tools', '.keep'))) {
+    // Si no existe, se crea
+    fs.writeFileSync(path.join(__dirname, 'backend-node', 'tools', '.keep'), '', 'utf-8');
+}
+```
+
+Las funciones `fs.existsSync()`, `fs.mkdirSync()` y `fs.writeFileSync()` tienen como argumento la ruta del directorio o del archivo con el cual se va a trabajar. La ruta se especifica utilizando la función `path.join()`, la cual normaliza las rutas de archivo de acuerdo con el tipo de sistema operativo. `_ _dirname` es una variable global de Node.js que obtiene la ruta del directorio del archivo que está siendo ejecutado.
+
+Esta solución es eficiente para estructuras de archivos o carpetas simples, pero podría no ser ideal para estructuras de directorios más complejas y anidadas. Para esos casos, sería más adecuado usar librerías como `mkdirp` que permiten crear múltiples directorios y subdirectorios de una vez. 
+
+Además, es importante tener en cuenta que este snippet de código está diseñado para ser ejecutado una sola vez, ya que luego de su primera ejecución, el directorio y el archivo ya existirán, por lo que las funciones de `fs` que crean el directorio y el archivo no se ejecutarán nuevamente.
