@@ -6,14 +6,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies for build)
-RUN npm install
+# Copy tsconfig.json needed for build
+COPY tsconfig.json ./
 
 # Copy source code
 COPY . .
 
-# Build TypeScript
-RUN npm run build
+# Install dependencies and build (skip postinstall, we'll build manually)
+RUN npm install --ignore-scripts && npm run build
 
 # Production stage
 FROM node:22-slim
@@ -23,7 +23,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies (skip postinstall build script)
+# Install only production dependencies (no build needed)
 RUN npm install --only=production --ignore-scripts
 
 # Copy built files from builder stage
