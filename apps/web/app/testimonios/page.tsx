@@ -466,7 +466,7 @@ export default function TestimonialsPage() {
           transition={{ delay: 0.3 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {testimonials.map((testimonial, index) => (
+          {testimonials?.map((testimonial, index) => (
             <motion.div
               key={testimonial.id}
               initial={{ opacity: 0, y: 20 }}
@@ -531,7 +531,7 @@ export default function TestimonialsPage() {
         </motion.div>
 
         {/* Empty State */}
-        {testimonials.length === 0 && !loading && (
+        {(testimonials?.length || 0) === 0 && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

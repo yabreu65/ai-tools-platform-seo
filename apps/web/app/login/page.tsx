@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 export const dynamic = 'force-dynamic';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -22,10 +22,20 @@ import SchemaMarkup from '@/components/seo/SchemaMarkup';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [redirectTo, setRedirectTo] = useState('/dashboard');
   const { login, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+
+  // Read search params after mount only on client
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get('redirect');
+      if (redirect) {
+        setRedirectTo(redirect);
+      }
+    }
+  }, []);
 
   const {
     register,

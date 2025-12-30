@@ -2,6 +2,9 @@
 import '../styles/globals.css';
 import '../styles/accessibility.css';
 import { Inter } from 'next/font/google'
+
+// Force dynamic rendering for all pages to avoid SSR errors
+export const dynamic = 'force-dynamic';
 import { ThemeProvider } from 'next-themes'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PlanProvider } from '@/contexts/PlanContext'

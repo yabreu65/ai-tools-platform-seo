@@ -2,6 +2,11 @@
 const nextConfig = {
   output: 'standalone', // Para Docker production builds
 
+  // Disable static generation during build to avoid SSR errors
+  experimental: {
+    isrMemoryCacheSize: 0,
+  },
+
   // Ignorar errores de TypeScript y ESLint durante build (para desarrollo)
   typescript: {
     ignoreBuildErrors: true,

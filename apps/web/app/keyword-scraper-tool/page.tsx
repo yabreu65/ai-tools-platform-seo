@@ -12,26 +12,32 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
-import { 
-  Search, 
-  Plus, 
-  Trash2, 
-  Play, 
-  Settings, 
-  BarChart3, 
-  History, 
-  CheckCircle, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  Trash2,
+  Play,
+  Settings,
+  BarChart3,
+  History,
+  CheckCircle,
+  Clock,
   AlertCircle,
   Download,
   FileText,
   Key,
   TrendingUp,
   Lightbulb,
-  Target
+  Target,
+  Crown,
+  X,
+  Users,
+  RotateCcw
 } from 'lucide-react';
 import HomeFloatingButton from '@/components/inicio-comun/HomeFloatingButton';
 import { ExportDropdown } from '@/components/export/export-button';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 // Types
 interface KeywordAnalysisConfig {

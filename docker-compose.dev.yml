@@ -1,0 +1,80 @@
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: ai-tools-mongodb-local
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - local-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: ai-tools-redis-local
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - local-network
+
+  # Backend
+  backend:
+    build:
+      context: ./packages/api
+      dockerfile: Dockerfile
+    container_name: ai-tools-backend-local
+    ports:
+      - "3001:3001"
+    environment:
+      # Reemplaza con tu OpenAI API Key
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MONGODB_URI: mongodb://mongodb:27017/ai-tools-platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ERv7qk50w2NSu5YDplHGS9D08GpWXM7n8+Za5ozLz8U=
+      JWT_REFRESH_SECRET: R2Lvk98GyhpS71ulr6+X/WHRz5Np6LkPUfDffPXQ+LI=
+      PORT: 3001
+      NODE_ENV: development
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./packages/api:/app
+      - /app/node_modules
+    networks:
+      - local-network
+    command: npm run dev
+
+  # Frontend
+  frontend:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: ai-tools-frontend-local
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      NEXTAUTH_SECRET: xDmxu+CZWOQ1xkOrbrAqwWuR2SKhup37+621sKqLyP8=
+      NODE_ENV: development
+    depends_on:
+      - backend
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - local-network
+    command: npm run dev
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  local-network:
+    driver: bridge
