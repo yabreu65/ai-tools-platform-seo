@@ -10,10 +10,9 @@ RUN npm install --only=production --ignore-scripts
 
 # Copy pre-built JavaScript files
 COPY dist ./dist
-COPY index.js ./
 
 # Expose port
 EXPOSE 3001
 
-# Run the pre-built JavaScript
-CMD ["node", "index.js"]
+# Run the pre-built JavaScript from dist folder
+CMD ["node", "dist/index.js"]
