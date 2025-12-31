@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getApiUrl } from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ export default function GeneradorRobotsPage() {
         headers['x-user-plan'] = user.plan || 'free';
       }
 
-      const response = await fetch('http://localhost:3001/api/robots-checker', {
+      const response = await fetch(getApiUrl('api/robots-checker'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ url }),

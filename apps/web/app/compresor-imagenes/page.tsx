@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import HomeFloatingButton from '@/components/inicio-comun/HomeFloatingButton';
+import { getApiUrl } from '@/lib/api';
 import { 
   Upload, 
   Download, 
@@ -148,7 +149,7 @@ export default function CompresorImagenesPage() {
       }
       formData.append('userPlan', user?.plan || 'free');
 
-      const response = await fetch('http://localhost:3001/api/compresor-imagenes/compress', {
+      const response = await fetch(getApiUrl('api/compresor-imagenes/compress'), {
         method: 'POST',
         body: formData,
       });

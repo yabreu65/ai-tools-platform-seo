@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -82,7 +83,7 @@ export default function SitemapAnalysisHistory() {
 
   const loadAnalysisHistory = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/generador-sitemap/history?page=${currentPage}&limit=10`, {
+      const response = await fetch(getApiUrl(`api/generador-sitemap/history?page=${currentPage}&limit=10`), {
         headers: {
           'x-user-id': user?.id || '',
           'x-user-email': user?.email || '',
@@ -107,7 +108,7 @@ export default function SitemapAnalysisHistory() {
 
   const loadStats = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/generador-sitemap/stats', {
+      const response = await fetch(getApiUrl('api/generador-sitemap/stats'), {
         headers: {
           'x-user-id': user?.id || '',
           'x-user-email': user?.email || '',

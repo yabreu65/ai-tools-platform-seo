@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getApiUrl } from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,7 @@ export default function GeneradorSitemapPage() {
         headers['x-user-plan'] = user.plan || 'free';
       }
 
-      const response = await fetch('http://localhost:3001/api/generador-sitemap', {
+      const response = await fetch(getApiUrl('api/generador-sitemap'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ url }),

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { getApiUrl } from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ export default function SeoAuditTool() {
 
 
     try {
-      const response = await fetch(`http://localhost:3001/api/auditor?url=${encodeURIComponent(url)}&mode=${mode}`);
+      const response = await fetch(getApiUrl(`api/auditor?url=${encodeURIComponent(url)}&mode=${mode}`));
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Error desconocido');
       setResult({ ...data, mode });

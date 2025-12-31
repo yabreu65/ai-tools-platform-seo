@@ -6,6 +6,7 @@ import { Info, Loader2, UploadCloud, X, MapPin, Store, Globe, Sparkles, AlertCir
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import HomeFloatingButton from '@/components/inicio-comun/HomeFloatingButton';
+import { getApiUrl } from '@/lib/api';
 
 
 export default function RenombradorPage() {
@@ -88,7 +89,7 @@ export default function RenombradorPage() {
       if (keyword.trim()) formData.append('keyword', keyword.trim());
       if (ciudad.trim()) formData.append('ciudad', ciudad.trim());
 
-      const res = await fetch('http://localhost:3001/api/renombrar', {
+      const res = await fetch(getApiUrl('api/renombrar'), {
         method: 'POST',
         body: formData,
       });

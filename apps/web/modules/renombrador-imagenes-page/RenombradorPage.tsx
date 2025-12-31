@@ -42,7 +42,7 @@ export default function RenombradorPage() {
     if (keyword) formData.append('keyword', keyword);
     if (ciudad) formData.append('ciudad', ciudad);
 
-    const res = await fetch('http://localhost:3001/api/renombrar', {
+    const res = await fetch(getApiUrl('api/renombrar'), {
       method: 'POST',
       body: formData,
     });
