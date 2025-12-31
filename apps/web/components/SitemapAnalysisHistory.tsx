@@ -187,7 +187,8 @@ export default function SitemapAnalysisHistory() {
 
   const handleDownload = (downloadUrl: string, url: string) => {
     const link = document.createElement('a');
-    link.href = `http://localhost:3001${downloadUrl}`;
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    link.href = `${apiBaseUrl}${downloadUrl}`;
     link.download = `sitemap-${new URL(url).hostname}.txt`;
     document.body.appendChild(link);
     link.click();
